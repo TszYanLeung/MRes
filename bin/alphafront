@@ -5,7 +5,7 @@
 set base="perturb_"
 
 set ic="PERTURB"
-set ijob='09m_long'
+set ijob='09s'
 
 #------------------   physical parameters   ----------------------
 
@@ -35,8 +35,8 @@ set tbeg=0
 
 #------------------   model parameters   ----------------------
 
-set tend=30.
-set tendp=30.
+set tend=18
+set tendp=18
 
 set tfld=`echo "1.5" | bc -l`
 set tspec=`echo "0.3" | bc -l`
@@ -103,7 +103,7 @@ set jobname=$base${ng4}_h${nst}_$ijob
 set basedir=$HOME/MPECDT/MRes_Project/ps/vort-sb
 set srcdir=$basedir/sources
 set bindir=$basedir/bin
-set outdir=$HOME/MPECDT/MRes_Project/data/ps/perturb-init/ICSR0-alpha2
+set outdir=$HOME/MPECDT/MRes_Project/data/ps/perturb-model/ICSR0-alpha2
 
 set subdir=$outdir
 #set subdir=$outdir/afront
