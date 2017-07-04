@@ -1,0 +1,167 @@
+#!/bin/csh
+
+#------------------   run name   ----------------------
+
+set base="perturb_"
+
+set ic="PERTURB"
+set ijob='09r'
+
+#------------------   physical parameters   ----------------------
+
+set alpha=2.0
+
+set ng=1024
+
+# nuhi=1 at ng=512
+#set rnu=`echo "e((2./3)*l($ng))/64." | bc -l`
+#set cnu=10.0
+#echo nuhi = $cnu times $rnu
+#set nuhi=`echo "$cnu*$rnu" | bc -l`
+#set rhi=1.0
+
+set falpha=2.2549
+set fsigma=0.0106
+
+set nuhi=10
+set rhi=6.0
+
+set lindamp=0.001
+
+#set rho=0.75                        <- hardwired in vort.F
+#set rho=0.666666666666666666666
+
+set tbeg=0
+
+#------------------   model parameters   ----------------------
+
+set tend=18
+set tendp=18
+
+set tfld=`echo "1.5" | bc -l`
+set tspec=`echo "0.3" | bc -l`
+set tdiag=`echo "0.3" | bc -l`
+
+set dt=0.01
+
+#dealiasing coefs
+set p=8.0
+set k0=8.0
+
+#------------------   machine parameters   ----------------------
+
+
+set np=1
+set npes=$np
+set nppn=1
+@ nnodes = ( $np / $nppn )
+
+#------------------   restart parameters   ----------------------
+
+set irestart=0
+set irst='00'
+
+# mw is resolution of restart file
+# @ mw = ( $nw / 4 )
+# @ mw = ( $nw / 2 )
+
+@ mg = ( $ng / 1 )
+
+@ nw = ( $ng / 2 )
+@ mw = ( $mg / 2 )
+
+
+set ng4=`echo $ng | awk '{printf "%04d",$1}'`
+set mg4=`echo $mg | awk '{printf "%04d",$1}'`
+set mw4=`echo $mw | awk '{printf "%04d",$1}'`
+
+#------------------   write input files   ----------------------
+
+cat <<EOF > inputs.dat
+$alpha
+$dt $tbeg $tendp $irestart
+$tdiag $tspec $tfld
+$falpha $fsigma
+$nuhi $rhi $lindamp
+$p $k0
+$nw $mw
+EOF
+
+#------------------   define directories   ----------------------
+
+set nst=`echo $nuhi | awk '{printf "%01d",$1}'`
+#set cst=`echo $cnu | sed s/'\.'//`
+set ast=`echo $alpha | sed s/'\.'//`
+
+#set rstname=$base${ng4}_nu${nst}_$irst
+#set jobname=$base${ng4}_nu${nst}_$ijob
+#set rstname=$base${ng4}_c${cst}_$irst
+#set jobname=$base${ng4}_c${cst}_$ijob
+set rstname=$base${ng4}_h${nst}_$irst
+set jobname=$base${ng4}_h${nst}_$ijob
+
+set basedir=$HOME/MPECDT/MRes_Project/ps/vort-sb
+set srcdir=$basedir/sources
+set bindir=$basedir/bin
+set outdir=$HOME/MPECDT/MRes_Project/data/ps/error_budget/ICSR0-alpha2
+
+set subdir=$outdir
+#set subdir=$outdir/afront
+#if (!(-d $subdir)) mkdir $subdir
+
+set jobdir=$subdir/$jobname
+set rstdir=$subdir/$rstname
+
+echo $jobdir
+if (-d $jobdir) then
+   set ijob='repeat'
+   set jobname=$base${ng4}_h${nst}_$ijob
+   set jobdir=$subdir/$jobname
+   if (-d $jobdir) then
+      echo ' '
+      echo ' *** Oops! *** this directory already exists; exiting'
+      echo ' '
+      exit (-1)
+      #/bin/rm -r $jobdir
+   else
+      echo ' '
+      echo ' *** Oops! *** this directory already exists; writing output at'
+      echo $jobdir
+      echo ' '
+      mkdir $jobdir
+   endif
+else
+   mkdir $jobdir
+endif
+
+#------------------   prepare files   ----------------------
+
+mv inputs.dat $jobdir
+cp $srcdir/vort.i $jobdir
+cp $srcdir/vortmpi.i $jobdir
+cp $srcdir/error_budget.F $jobdir
+cp $srcdir/fftw_f77.i $jobdir
+cp $bindir/error_budget $jobdir
+if ( $irestart == 1 )  cp $subdir/$rstname/??sp{$mw4}.dat $jobdir
+#cp $subdir/$rstname/qqsp{$mw4}.dat $jobdir
+cd $jobdir
+
+#------------------   submit job   ----------------------
+
+echo "submitting locally"
+
+set np=1
+set CFLAGS="-DGNU -DADAPT -D{$ic}"
+
+alias f77 "gfortran"
+set Copt="-O3 -ffixed-line-length-none -mcmodel=medium"
+set Lopt="-O3"
+
+set libdir="$HOME/MPECDT/MRes_Project/fftw-2.1.5/lib"
+set LIBS="-L$libdir -lrfftw -lfftw -lm -Wl,-rpath,$libdir"
+
+cpp -P -DNP=$np -DNW=$nw $srcdir/vort.i vort.i
+f77 $Copt $CFLAGS -c error_budget.F
+f77 $Lopt -o error_budget error_budget.o $LIBS
+
+./error_budget
