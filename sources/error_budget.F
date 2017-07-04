@@ -4,9 +4,10 @@
 
       dimension p0(ng2,ngpp2)
       dimension f0(ng2,ngpp2),f1(ng2,ngpp2),ff(ng2,ngpp2)
+      dimension dd(ng2,ngpp2)
       dimension px(ng2,ngpp2),py(ng2,ngpp2)
       dimension qx(ng2,ngpp2),qy(ng2,ngpp2)
-      double precision J,F
+      double precision J,F,D
       character*80 qqfile0,qqfile1,forcefile0,forcefile1
 
       alpha=two
@@ -104,7 +105,7 @@ c     compute J term:
       J = zero
       do ky=1,ngpp
          do kx=1,ng2
-            J=J+grnsp(kx,ky)*pp(kx,ky)*q0(kx,ky)
+            J=J-grnsp(kx,ky)*pp(kx,ky)*q0(kx,ky)
          enddo
       enddo
 
@@ -118,13 +119,13 @@ c     take f from control run:
       close(91)
 
 c     take f from perturbed run:
-c      open(92,file=forcefile1)
-c      do ky=1,ngpp
-c         do kx=1,ng2
-c            read(92,*) f1(kx,ky)
-c         enddo
-c      enddo
-c      close(92)
+      open(92,file=forcefile1)
+      do ky=1,ngpp
+         do kx=1,ng2
+            read(92,*) f1(kx,ky)
+         enddo
+      enddo
+      close(92)
 
 c     f difference in spectral space:
       do ky=1,ngpp
@@ -137,13 +138,29 @@ c     compute F term:
       F = zero
       do ky=1,ngpp
          do kx=1,ng2
-            F=F+grnsp(kx,ky)*pp(kx,ky)*ff(kx,ky)
+            F=F-grnsp(kx,ky)*pp(kx,ky)*ff(kx,ky)
+         enddo
+      enddo
+
+c     d difference in spectral space:
+      anuhi=10.d0/((0.75*dble(nw))**12.d0)
+      do ky=1,ngpp
+         do kx=1,ng2
+            dd(kx,ky)=-anuhi*((rkx(kx)**2+rky(ky)**2)**6)*qq(kx,ky)-dble(0.001)*qq(kx,ky)
+         enddo
+      enddo
+
+c     compute D term:
+      D = zero
+      do ky=1,ngpp
+         do kx=1,ng2
+            D=D-grnsp(kx,ky)*pp(kx,ky)*dd(kx,ky)
          enddo
       enddo
 
 c     write outputs:
-      write(88,1) J,F
-1     format(2(1x,e14.6))
+      write(88,1) J,F,D
+1     format(3(1x,e14.6))
 
       enddo
 
