@@ -513,23 +513,27 @@ c     TODO - fix this mess:
 
 #ifdef PERTURB
 
+c      call random_seed(size=i_seed)
+c      allocate(a_seed(1:i_seed))
+c      call random_seed(get=a_seed)
+
 c     define phase shift for each wavevector:
-c      do ky=1,ngpp
-c        do kx=1,ng2-1,2
-c          call random_number(rr)
-c          pert(kx  ,ky)=cos(twopi*rr*km(kx  ,ky))
-c          pert(kx+1,ky)=sin(twopi*rr*km(kx+1,ky))
-c        enddo
-c      enddo
+      do ky=1,ngpp
+        do kx=1,ng2-1,2
+          call random_number(rr)
+          pert(kx  ,ky)=cos(twopi*rr*km(kx  ,ky))
+          pert(kx+1,ky)=sin(twopi*rr*km(kx+1,ky))
+        enddo
+      enddo
 
 c     recover t, dt and theta and force fields from control run:
-      open(89,file='../../../perturb-init/ICSR0-alpha2/control_1024_h10_0x/qspec0030.dat')
-      open(90,file='../../../perturb-init/ICSR0-alpha2/control_1024_h10_0x/force0030.dat')
+      open(89,file='../../../perturb-init/ICSR0-alpha1/control_1024_h10_0x/qspec0020.dat')
+      open(90,file='../../../perturb-init/ICSR0-alpha1/control_1024_h10_0x/force0020.dat')
       read(89,*) t
       read(89,*) dt
       do ky=1,ngpp
          do kx=1,ng2
-            read(89,*) qq(kx,ky)
+            read(89,*) qq1(kx,ky)
             read(90,*) force(kx,ky)
          enddo
       enddo
@@ -573,34 +577,34 @@ c        read(91,*) t1
 c        goto 100
 c      endif
 
-c      do k=0,nw
+      do k=0,nw
 c        read(91,*) k1,bfac
 c        if ((k.ge.100).and.(k.le.512)) then
 c          beta(k)=max(0.0001/sqrt(2*bfac),one)
 c          beta(k)=sqrt(0.5)
-c        else if ((k.ge.5).and.(k.le.99)) then
-c          beta(k)=sqrt(0.005)
-c        else
-c          beta(k)=zero
-c        endif
-c      enddo
-c      do k=nw+1,ng
-c        beta(k)=zero
-c      enddo
+        if ((k.ge.5).and.(k.le.99)) then
+          beta(k)=sqrt(0.005)
+        else
+          beta(k)=zero
+        endif
+      enddo
+      do k=nw+1,ng
+        beta(k)=zero
+      enddo
 c      close(91)
 
 
 c     generate perturbations:
-c      do ky=1,ngpp
-c        do kx=1,ng2-1,2
-c          qq(kx  ,ky)=(1-beta(km(kx  ,ky)))*qq1(kx  ,ky)
-c     .               +beta(km(kx  ,ky))*pert(kx  ,ky)*qq1(kx  ,ky)
-c     .               -beta(km(kx  ,ky))*pert(kx+1,ky)*qq1(kx+1,ky)
-c          qq(kx+1,ky)=(1-beta(km(kx+1,ky)))*qq1(kx+1,ky)
-c     .               +beta(km(kx+1,ky))*pert(kx  ,ky)*qq1(kx+1,ky)
-c     .               +beta(km(kx+1,ky))*pert(kx+1,ky)*qq1(kx  ,ky)
-c        enddo
-c      enddo
+      do ky=1,ngpp
+        do kx=1,ng2-1,2
+          qq(kx  ,ky)=(1-beta(km(kx  ,ky)))*qq1(kx  ,ky)
+     .               +beta(km(kx  ,ky))*pert(kx  ,ky)*qq1(kx  ,ky)
+     .               -beta(km(kx  ,ky))*pert(kx+1,ky)*qq1(kx+1,ky)
+          qq(kx+1,ky)=(1-beta(km(kx+1,ky)))*qq1(kx+1,ky)
+     .               +beta(km(kx+1,ky))*pert(kx  ,ky)*qq1(kx+1,ky)
+     .               +beta(km(kx+1,ky))*pert(kx+1,ky)*qq1(kx  ,ky)
+        enddo
+      enddo
 
 c     scale qq by ng and obtain streamfunction:
       do ky=1,ngpp
@@ -846,9 +850,9 @@ c     perform a single 4th order Runga-Kutta step
 c     AR(1) forcing scheme
 
 c     NB: scaling of ng in Fourier space
-      lagdt=1-falpha*dt
+      lagdt=1-2*falpha*dt
       noisestd=fsigma*sqrt(dt)*ng
-      arstd=(fsigma/sqrt(2*falpha))*ng
+      arstd=(fsigma/sqrt(2*2*falpha))*ng
 
       do ky=1,ngpp
         do kx=1,ng2-1,2
@@ -878,8 +882,8 @@ c     NB: scaling of ng in Fourier space
             endif
             call random_number(r1)
             call random_number(r2)
-            r3=6*noisestd*sqrt(-2.d0*log(r1))*cos(twopi*r2)
-            r4=6*noisestd*sqrt(-2.d0*log(r1))*sin(twopi*r2)
+            r3=3*noisestd*sqrt(-2.d0*log(r1))*cos(twopi*r2)
+            r4=3*noisestd*sqrt(-2.d0*log(r1))*sin(twopi*r2)
             force(kx  ,ky)=lagdt*force(kx  ,ky)+r3
             force(kx+1,ky)=lagdt*force(kx+1,ky)+r4
           else
@@ -1321,7 +1325,7 @@ c     tsp,psp = spectra for kinetic and potential energy
       enddo
 
 #ifdef PERTURB
-      write(ctrlfile,'(a,i4.4,a)') '../../../perturb-init/ICSR0-alpha2/control_1024_h10_0x/qspec',icount,'.dat'
+      write(ctrlfile,'(a,i4.4,a)') '../../../perturb-init/ICSR0-alpha1/control_1024_h10_0x/qspec',icount,'.dat'
       open(92,file=ctrlfile)
       read(92,*)
       read(92,*)
@@ -1516,7 +1520,7 @@ c     2D theta field in physical space:
          enddo
       enddo
 
-#ifndef PERTURB
+c#ifndef PERTURB
 c     store data to initialise in perturbation experiments
 
       call random_seed(size=i_seed)
@@ -1563,7 +1567,7 @@ c     find a better way to do this... (want to open in init routine);
          endif
          call pbarrier
       enddo
-#endif
+c#endif
 
 c     compute physical quantities
 

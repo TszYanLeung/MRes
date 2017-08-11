@@ -8,21 +8,21 @@
       dimension px(ng2,ngpp2),py(ng2,ngpp2)
       dimension qx(ng2,ngpp2),qy(ng2,ngpp2)
       double precision J,F,D
-      character*80 qqfile0,qqfile1,forcefile0,forcefile1
+      character*85 qqfile0,qqfile1,forcefile0,forcefile1
 
-      alpha=two
+      alpha=one
 
       call initfft
       call initgrn
 
       open(88,file='budget.dat')
 
-      do icount=30,60,5
+      do icount=20,60,5
 
-      write(qqfile0,'(a,i4.4,a)') '../../../perturb-init/ICSR0-alpha2/control_1024_h10_0x/qq',icount,'.dat'
-      write(qqfile1,'(a,i4.4,a)') '../../../perturb-model/ICSR0-alpha2/perturb_1024_h10_09r/qq',icount,'.dat'
-      write(forcefile0,'(a,i4.4,a)') '../../../perturb-init/ICSR0-alpha2/control_1024_h10_0x/force',icount,'.dat'
-      write(forcefile1,'(a,i4.4,a)') '../../../perturb-model/ICSR0-alpha2/perturb_1024_h10_09r/force',icount,'.dat'
+      write(qqfile0,'(a,i4.4,a)') '../../../perturb-init/ICSR0-alpha1/control_1024_h10_0x/qq',icount,'.dat'
+      write(qqfile1,'(a,i4.4,a)') '../../../perturb-combined/ICSR0-alpha1/perturb_1024_h10_04ss_budget/qq',icount,'.dat'
+      write(forcefile0,'(a,i4.4,a)') '../../../perturb-init/ICSR0-alpha1/control_1024_h10_0x/force',icount,'.dat'
+      write(forcefile1,'(a,i4.4,a)') '../../../perturb-combined/ICSR0-alpha1/perturb_1024_h10_04ss_budget/force',icount,'.dat'
 
 c     take q from control run:
       open(89,file=qqfile0)
